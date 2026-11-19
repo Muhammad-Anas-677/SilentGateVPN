@@ -23,6 +23,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -56,6 +60,9 @@ fun ToolsScreen() {
     var scanning by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
     var found by remember { mutableStateOf<List<Net.Candidate>>(emptyList()) }
+    var siteInput by remember { mutableStateOf("") }
+    var siteRunning by remember { mutableStateOf(false) }
+    var siteSteps by remember { mutableStateOf<List<Net.SiteStep>>(emptyList()) }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
         Text("Tools", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 16.dp))
@@ -163,6 +170,58 @@ fun ToolsScreen() {
             }
             if (!scanning && found.isEmpty() && progress > 0f) {
                 Text("No address answered.", color = SgOrange, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+
+        SectionTitle("Site test")
+        SgCardBox {
+            Text(
+                "Type a website to see exactly where it fails: DNS, connection or the site itself. Works best while connected.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = siteInput, onValueChange = { siteInput = it },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                placeholder = { Text("example.com", color = Color(0xFF8A8A8A)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color(0xFFF2F2F2), unfocusedTextColor = Color(0xFFF2F2F2),
+                    cursorColor = SgGreen, focusedBorderColor = SgGreen, unfocusedBorderColor = Color(0xFF6A6A6A)
+                )
+            )
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = {
+                    siteRunning = true; siteSteps = emptyList()
+                    scope.launch {
+                        siteSteps = Net.siteTest(siteInput)
+                        siteRunning = false
+                    }
+                },
+                enabled = !siteRunning && siteInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SgGreen, contentColor = Color.Black,
+                    disabledContainerColor = Color(0xFF1C1C1C), disabledContentColor = Color(0xFF9A9A9A)
+                )
+            ) {
+                if (siteRunning) CircularProgressIndicator(Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
+                else Text("Test site")
+            }
+            siteSteps.forEach { st ->
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.Top) {
+                    Icon(
+                        if (st.ok == false) Icons.Rounded.Warning else Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = when (st.ok) { true -> SgGreen; false -> SgDanger; null -> SgOrange }
+                    )
+                    Spacer(Modifier.size(10.dp))
+                    Column {
+                        Text(st.title, style = MaterialTheme.typography.titleMedium)
+                        Text(st.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
         }
 
