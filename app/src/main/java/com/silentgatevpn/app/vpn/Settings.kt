@@ -26,7 +26,8 @@ enum class WarpTunnel(val label: String, val core: String) {
 enum class DnsProvider(val label: String, val server: String, val sni: String?) {
     CLOUDFLARE("Cloudflare 1.1.1.1", "1.1.1.1", null),
     QUAD9("Quad9 unfiltered", "9.9.9.10", "dns10.quad9.net"),
-    ADGUARD("AdGuard unfiltered", "94.140.14.140", "unfiltered.adguard-dns.com")
+    ADGUARD("AdGuard unfiltered", "94.140.14.140", "unfiltered.adguard-dns.com"),
+    GOOGLE("Google 8.8.8.8", "8.8.8.8", "dns.google")
 }
 
 enum class SplitMode(val label: String) { OFF("Off"), EXCLUDE("Bypass selected"), ONLY("Only selected") }

@@ -149,6 +149,7 @@ class SilentGateService : VpnService(), PlatformInterface, CommandServerHandler 
                 VpnState.message.value = "Trying ${layer.title}…"
                 updateNotification("Trying ${layer.title}…")
                 var started = false
+                var okVariant = 0
                 var lastError = ""
                 for (variant in 0 until ConfigBuilder.variants(layer)) {
                     val cfg = try {
@@ -161,6 +162,7 @@ class SilentGateService : VpnService(), PlatformInterface, CommandServerHandler 
                     try {
                         server!!.startOrReloadService(cfg, overrides())
                         started = true
+                        okVariant = variant
                         if (variant > 0) VpnState.log("${layer.title}: running with reduced options (variant $variant)")
                         break
                     } catch (e: CancellationException) {
@@ -174,9 +176,30 @@ class SilentGateService : VpnService(), PlatformInterface, CommandServerHandler 
                     reasons += "${layer.title}: ${lastError.take(140)}"
                     continue
                 }
-                if (Net.waitForTunnel(layer.timeoutMs)) {
+                var result = Net.waitForTunnel(layer.timeoutMs)
+                if (result == Net.TunnelResult.DNS_BROKEN) {
+                    // Tunnel carries traffic but names do not resolve (resolver blocked by the ISP): rotate DNS provider.
+                    for (d in DnsProvider.entries.filter { it != s.dns }) {
+                        VpnState.message.value = "DNS blocked, trying ${d.label}…"
+                        VpnState.log("${layer.title}: DNS broken with ${s.dns.label}, trying ${d.label}")
+                        val ok = runCatching {
+                            server!!.startOrReloadService(ConfigBuilder.build(layer, s.copy(dns = d), ProfileStore.active(), okVariant), overrides())
+                        }.isSuccess
+                        if (!ok) continue
+                        if (Net.waitForTunnel(15_000) == Net.TunnelResult.OK) {
+                            SettingsStore.update { it.copy(dns = d) }
+                            result = Net.TunnelResult.OK
+                            break
+                        }
+                    }
+                }
+                if (result == Net.TunnelResult.OK) {
                     onConnected(layer)
                     return
+                }
+                if (result == Net.TunnelResult.DNS_BROKEN) {
+                    reasons += "${layer.title}: tunnel works but every DNS provider is blocked on this network"
+                    continue
                 }
                 VpnState.log("${layer.title}: started but no traffic, falling back")
                 reasons += "${layer.title}: started but no traffic (network may block it)"

@@ -56,31 +56,38 @@ object Net {
         return Trace(ip, map["loc"] ?: "", map["colo"] ?: "", (map["warp"] ?: "off") != "off", rtt)
     }
 
-    private val PROBES = listOf(
-        "https://1.1.1.1/cdn-cgi/trace",
+    // Hostname probes: succeed only if DNS works through the tunnel AND traffic flows.
+    private val HOST_PROBES = listOf(
         "https://cp.cloudflare.com/generate_204",
         "https://www.gstatic.com/generate_204",
         "https://connectivitycheck.gstatic.com/generate_204"
     )
+    // IP probes: need no DNS. If these pass while host probes fail, the tunnel is fine but DNS is broken.
+    private val IP_PROBES = listOf(
+        "https://1.1.1.1/cdn-cgi/trace",
+        "https://8.8.8.8/resolve?name=example.com&type=A"
+    )
 
-    /** True as soon as ANY probe answers. One blocked host (common on some ISPs) no longer fails the whole connection. */
-    suspend fun probe(timeoutMs: Int = 6000): Boolean = coroutineScope {
-        val jobs = PROBES.map { u -> async(Dispatchers.IO) { runCatching { http(u, timeoutMs) }.isSuccess } }
-        var ok = false
-        for (j in jobs) { if (j.await()) { ok = true; break } }
-        jobs.forEach { it.cancel() }
-        ok
+    private suspend fun anyOk(urls: List<String>, timeoutMs: Int): Boolean = coroutineScope {
+        urls.map { u -> async(Dispatchers.IO) { runCatching { http(u, timeoutMs) }.isSuccess } }.awaitAll().any { it }
     }
 
-    /** Polls until traffic flows through the tunnel or the time runs out. */
-    suspend fun waitForTunnel(timeoutMs: Long): Boolean {
+    /** True when real websites (by name) are reachable through the tunnel. */
+    suspend fun probe(timeoutMs: Int = 6000): Boolean = anyOk(HOST_PROBES, timeoutMs)
+
+    enum class TunnelResult { OK, DNS_BROKEN, NO_TRAFFIC }
+
+    /** Polls until names resolve and traffic flows, DNS is detected as broken, or the time runs out. */
+    suspend fun waitForTunnel(timeoutMs: Long): TunnelResult {
         val end = System.currentTimeMillis() + timeoutMs
         delay(1500)
+        var dnsOnly = 0
         while (System.currentTimeMillis() < end) {
-            if (probe(6000)) return true
-            delay(1500)
+            if (probe(6000)) return TunnelResult.OK
+            if (anyOk(IP_PROBES, 5000)) { if (++dnsOnly >= 2) return TunnelResult.DNS_BROKEN } else dnsOnly = 0
+            delay(1000)
         }
-        return false
+        return TunnelResult.NO_TRAFFIC
     }
 
     suspend fun pingMedian(count: Int = 3): Long {

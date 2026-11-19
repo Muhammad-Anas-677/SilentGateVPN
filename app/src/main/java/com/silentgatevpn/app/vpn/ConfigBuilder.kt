@@ -80,9 +80,10 @@ object ConfigBuilder {
         )
         s.dns.sni?.let { remote.put("tls", obj("server_name" to it)) }
         val bootstrap = obj(
-            "type" to "https", "tag" to "dns-bootstrap", "server" to "1.1.1.1",
+            "type" to "https", "tag" to "dns-bootstrap", "server" to s.dns.server,
             "server_port" to 443, "path" to "/dns-query"
         )
+        s.dns.sni?.let { bootstrap.put("tls", obj("server_name" to it)) }
         val dns = obj(
             "servers" to JSONArray().put(remote).put(bootstrap),
             "final" to "dns-remote",
@@ -106,7 +107,7 @@ object ConfigBuilder {
         val tun = obj(
             "type" to "tun", "tag" to "tun-in",
             "address" to arr("172.19.0.1/30", "fdfe:dcba:9876::1/126"),
-            "mtu" to s.mtu,
+            "mtu" to (if (layer == Layer.WARP) minOf(s.mtu, 1280) else s.mtu),
             "auto_route" to true,
             "strict_route" to true,
             "stack" to "mixed"
