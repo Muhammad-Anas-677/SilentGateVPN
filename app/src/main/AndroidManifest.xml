@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Needed to talk to the VPN server and register with WARP -->
+    <!-- Needed to talk to the VPN server, register with WARP and read the VPN Gate server list -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Android 11+ package visibility: only to detect/launch "OpenVPN for Android" (de.blinkt.openvpn) -->
+    <queries>
+        <package android:name="de.blinkt.openvpn" />
+    </queries>
 
     <application
         android:allowBackup="false"
@@ -33,5 +38,17 @@
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
+
+        <!-- Shares one VPN Gate .ovpn profile (cache/ovpn/) with OpenVPN for Android.
+             Not exported: access is granted per-file with a temporary read permission only. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

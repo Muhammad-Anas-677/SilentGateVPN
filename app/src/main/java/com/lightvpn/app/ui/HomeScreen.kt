@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -72,19 +71,13 @@ fun HomeScreen(
                 .systemBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
-            // Top bar: theme toggle (off = Light, on = AMOLED dark)
+            // Top bar: one-icon theme toggle (moon = switch to AMOLED dark, sun = switch to Light)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Light", style = MaterialTheme.typography.labelLarge, color = colors.onBackground)
-                Switch(
-                    checked = amoled,
-                    onCheckedChange = onThemeChange,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                Text("AMOLED", style = MaterialTheme.typography.labelLarge, color = colors.onBackground)
+                ThemeToggleButton(dark = amoled, onToggle = { onThemeChange(!amoled) })
             }
 
             Column(
