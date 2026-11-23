@@ -1,2 +1,4 @@
--keep class io.nekohasekai.** { *; }
--keep class go.** { *; }
+-keep class com.wireguard.** { *; }
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+-dontwarn javax.annotation.concurrent.**

@@ -1,8 +1,7 @@
 .gradle/
 build/
 local.properties
-*.iml
+*.jks
+*.keystore
 .idea/
-app/libs/*.aar
-core/
-libbox-out/
+*.iml

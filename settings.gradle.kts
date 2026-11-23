@@ -3,8 +3,6 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        // Fallback mirror of Maven Central run by Google (only used if the primary repos answer "not found").
-        maven("https://maven-central.storage-download.googleapis.com/maven2/")
     }
 }
 dependencyResolutionManagement {
@@ -12,8 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://maven-central.storage-download.googleapis.com/maven2/")
     }
 }
-rootProject.name = "SilentGateVPN"
+rootProject.name = "LightVPN"
 include(":app")

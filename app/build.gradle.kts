@@ -5,22 +5,25 @@ plugins {
 }
 
 android {
-    namespace = "com.silentgatevpn.app"
+    namespace = "com.lightvpn.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.silentgatevpn.app"
+        applicationId = "com.lightvpn.madebyanas"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.4"
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        versionCode = 1
+        versionName = "1.0"
+        // Keep APK small for low-end phones (32-bit + 64-bit ARM only)
+        ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Debug-key signing so the APK installs directly (personal sideload).
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -31,24 +34,18 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
-    packaging {
-        jniLibs { useLegacyPackaging = true }
-        resources.excludes += setOf("META-INF/*.kotlin_module", "META-INF/LICENSE*", "META-INF/NOTICE*")
-    }
+    packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
 dependencies {
-    implementation(files("libs/libbox.aar"))
-
-    val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
-    implementation(composeBom)
+    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.compose.animation:animation")
     implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.security:security-crypto:1.0.0")
+    // Official WireGuard embeddable tunnel library (Apache-2.0)
+    implementation("com.wireguard.android:tunnel:1.0.20260102")
 }
